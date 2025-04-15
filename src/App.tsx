@@ -4,7 +4,7 @@
 import { useState } from "react";
 
 // Editable raid list
-const defaultRaidList = ["Akkan", "Ivory", "Thaemine", "Echidna", "Behemoth", "Aegir", "Ice Brel"];
+const defaultRaidList = ["Echidna", "Behemoth", "Aegir", "Ice Brel"];
 const raidOptions = ["Skip", "Normal", "Hard"];
 
 interface Character {
@@ -17,6 +17,7 @@ interface Character {
 
 export default function LostArkRaidTracker() {
   const [raidList, setRaidList] = useState<string[]>(defaultRaidList);
+  const [newRaid, setNewRaid] = useState<string>("");
   const [characters, setCharacters] = useState<Character[]>([
     {
       name: "Main WD",
@@ -65,15 +66,49 @@ export default function LostArkRaidTracker() {
     ]);
   };
 
+  const addRaid = () => {
+    const trimmed = newRaid.trim();
+    if (!trimmed || raidList.includes(trimmed)) return;
+    const updatedList = [...raidList, trimmed];
+    setRaidList(updatedList);
+    setNewRaid("");
+    setCharacters((prev) =>
+      prev.map((char) => ({
+        ...char,
+        raids: { ...char.raids, [trimmed]: "Skip" },
+      }))
+    );
+  };
+
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Lost Ark Raid Tracker</h1>
-      <button onClick={addCharacter} className="px-4 py-2 bg-blue-600 text-white rounded">+ Add Character</button>
-      <button onClick={resetProgress} className="ml-4 px-4 py-2 bg-red-600 text-white rounded">Reset Progress</button>
+    <div className="p-4 space-y-4 max-w-screen-xl mx-auto">
+      <h1 className="text-3xl font-bold mb-4 text-center">Lost Ark Raid Tracker</h1>
+
+      <div className="flex flex-wrap justify-between gap-4 items-center">
+        <div className="flex gap-2">
+          <button onClick={addCharacter} className="px-4 py-2 bg-blue-600 text-white rounded">+ Add Character</button>
+          <button onClick={resetProgress} className="px-4 py-2 bg-red-600 text-white rounded">Reset Progress</button>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Add new raid"
+            value={newRaid}
+            onChange={(e) => setNewRaid(e.target.value)}
+            className="border p-2 rounded"
+          />
+          <button
+            onClick={addRaid}
+            className="px-3 py-2 bg-green-600 text-white rounded"
+          >
+            + Add Raid
+          </button>
+        </div>
+      </div>
 
       {characters.map((char, idx) => (
-        <div key={idx} className="p-4 border rounded shadow bg-white">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+        <div key={idx} className="p-4 border rounded shadow bg-white space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <input
               placeholder="Name"
               value={char.name}
@@ -82,7 +117,7 @@ export default function LostArkRaidTracker() {
                 updated[idx].name = e.target.value;
                 setCharacters(updated);
               }}
-              className="border p-2 rounded"
+              className="border p-2 rounded w-full"
             />
             <input
               placeholder="Class"
@@ -92,7 +127,7 @@ export default function LostArkRaidTracker() {
                 updated[idx].class = e.target.value;
                 setCharacters(updated);
               }}
-              className="border p-2 rounded"
+              className="border p-2 rounded w-full"
             />
             <input
               placeholder="iLvl"
@@ -103,39 +138,51 @@ export default function LostArkRaidTracker() {
                 updated[idx].ilvl = parseInt(e.target.value);
                 setCharacters(updated);
               }}
-              className="border p-2 rounded"
+              className="border p-2 rounded w-full"
             />
-
-            {raidList.map((raid) => (
-              <select
-                key={raid}
-                value={char.raids[raid]}
-                onChange={(e) => handleRaidChange(idx, raid, e.target.value)}
-                className="border p-2 rounded"
-              >
-                {raidOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {raid} - {opt}
-                  </option>
-                ))}
-              </select>
-            ))}
           </div>
 
-          {Object.entries(char.raidProgress).length > 0 && (
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
-              {Object.entries(char.raidProgress).map(([raid, completed]) => (
-                <label key={raid} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={completed}
-                    onChange={() => handleCheckboxChange(idx, raid)}
-                  />
-                  <span>{raid}</span>
-                </label>
-              ))}
-            </div>
-          )}
+          <div className="overflow-auto">
+            <table className="min-w-full border mt-2">
+              <thead>
+                <tr>
+                  {raidList.map((raid) => (
+                    <th key={raid} className="border p-2 bg-gray-100 text-sm text-left">{raid}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  {raidList.map((raid) => (
+                    <td key={raid} className="border p-2">
+                      <select
+                        value={char.raids[raid]}
+                        onChange={(e) => handleRaidChange(idx, raid, e.target.value)}
+                        className="border p-1 rounded w-full"
+                      >
+                        {raidOptions.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  {raidList.map((raid) => (
+                    <td key={raid + "_check"} className="border p-2 text-center">
+                      {char.raids[raid] !== "Skip" && (
+                        <input
+                          type="checkbox"
+                          checked={char.raidProgress[raid] || false}
+                          onChange={() => handleCheckboxChange(idx, raid)}
+                        />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       ))}
     </div>
