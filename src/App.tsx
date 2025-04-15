@@ -2,11 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 
 // Editable raid list
 const defaultRaidList = ["Akkan", "Ivory", "Thaemine", "Echidna", "Behemoth", "Aegir", "Ice Brel"];
@@ -16,8 +11,8 @@ interface Character {
   name: string;
   class: string;
   ilvl: number;
-  raids: { [key: string]: string }; // e.g., { Akkan: "Skip", Thaemine: "Hard" }
-  raidProgress: { [key: string]: boolean }; // tracking progress for chosen raids
+  raids: { [key: string]: string };
+  raidProgress: { [key: string]: boolean };
 }
 
 export default function LostArkRaidTracker() {
@@ -73,12 +68,13 @@ export default function LostArkRaidTracker() {
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-2xl font-bold">Lost Ark Raid Tracker</h1>
-      <Button onClick={addCharacter}>+ Add Character</Button>
-      <Button onClick={resetProgress} variant="destructive" className="ml-4">Reset Progress</Button>
+      <button onClick={addCharacter} className="px-4 py-2 bg-blue-600 text-white rounded">+ Add Character</button>
+      <button onClick={resetProgress} className="ml-4 px-4 py-2 bg-red-600 text-white rounded">Reset Progress</button>
+
       {characters.map((char, idx) => (
-        <Card key={idx} className="p-4">
-          <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <Input
+        <div key={idx} className="p-4 border rounded shadow bg-white">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+            <input
               placeholder="Name"
               value={char.name}
               onChange={(e) => {
@@ -86,8 +82,9 @@ export default function LostArkRaidTracker() {
                 updated[idx].name = e.target.value;
                 setCharacters(updated);
               }}
+              className="border p-2 rounded"
             />
-            <Input
+            <input
               placeholder="Class"
               value={char.class}
               onChange={(e) => {
@@ -95,8 +92,9 @@ export default function LostArkRaidTracker() {
                 updated[idx].class = e.target.value;
                 setCharacters(updated);
               }}
+              className="border p-2 rounded"
             />
-            <Input
+            <input
               placeholder="iLvl"
               type="number"
               value={char.ilvl}
@@ -105,34 +103,40 @@ export default function LostArkRaidTracker() {
                 updated[idx].ilvl = parseInt(e.target.value);
                 setCharacters(updated);
               }}
+              className="border p-2 rounded"
             />
+
             {raidList.map((raid) => (
-              <Select
+              <select
                 key={raid}
                 value={char.raids[raid]}
-                onValueChange={(value) => handleRaidChange(idx, raid, value)}
+                onChange={(e) => handleRaidChange(idx, raid, e.target.value)}
+                className="border p-2 rounded"
               >
                 {raidOptions.map((opt) => (
-                  <SelectItem key={opt} value={opt}>
+                  <option key={opt} value={opt}>
                     {raid} - {opt}
-                  </SelectItem>
+                  </option>
                 ))}
-              </Select>
+              </select>
             ))}
-          </CardContent>
+          </div>
 
-          {/* Raid tracking checkboxes */}
           {Object.entries(char.raidProgress).length > 0 && (
             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
               {Object.entries(char.raidProgress).map(([raid, completed]) => (
                 <label key={raid} className="flex items-center space-x-2">
-                  <Checkbox checked={completed} onCheckedChange={() => handleCheckboxChange(idx, raid)} />
+                  <input
+                    type="checkbox"
+                    checked={completed}
+                    onChange={() => handleCheckboxChange(idx, raid)}
+                  />
                   <span>{raid}</span>
                 </label>
               ))}
             </div>
           )}
-        </Card>
+        </div>
       ))}
     </div>
   );
