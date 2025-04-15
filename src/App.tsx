@@ -1,133 +1,139 @@
-import React, { useState, useEffect } from "react";
+// lostark_raid_tracker.tsx
+"use client";
 
-const raidList = ["Akkan", "Ivory", "Thaemine", "Echidna", "Behemoth", "Aegir", "Ice Brel"];
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+
+// Editable raid list
+const defaultRaidList = ["Akkan", "Ivory", "Thaemine", "Echidna", "Behemoth", "Aegir", "Ice Brel"];
 const raidOptions = ["Skip", "Normal", "Hard"];
 
 interface Character {
   name: string;
   class: string;
   ilvl: number;
-  raids: { [key: string]: string };
-  income: number;
+  raids: { [key: string]: string }; // e.g., { Akkan: "Skip", Thaemine: "Hard" }
+  raidProgress: { [key: string]: boolean }; // tracking progress for chosen raids
 }
 
-const raidIncomeValues: { [key: string]: { [level: string]: number } } = {
-  Akkan: { Skip: 0, Normal: 50000, Hard: 100000 },
-  Ivory: { Skip: 0, Normal: 40000, Hard: 80000 },
-  Thaemine: { Skip: 0, Normal: 70000, Hard: 140000 },
-  Echidna: { Skip: 0, Normal: 30000, Hard: 60000 },
-  Behemoth: { Skip: 0, Normal: 60000, Hard: 120000 },
-  Aegir: { Skip: 0, Normal: 20000, Hard: 40000 },
-  "Ice Brel": { Skip: 0, Normal: 35000, Hard: 70000 },
-};
-
-const App = () => {
-  const [characters, setCharacters] = useState<Character[]>([]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("lostark_characters");
-    if (saved) setCharacters(JSON.parse(saved));
-    else addCharacter();
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("lostark_characters", JSON.stringify(characters));
-  }, [characters]);
-
-  const handleChange = (idx: number, field: keyof Character, value: any) => {
-    const updated = [...characters];
-    (updated[idx] as any)[field] = value;
-    setCharacters(updated);
-  };
+export default function LostArkRaidTracker() {
+  const [raidList, setRaidList] = useState<string[]>(defaultRaidList);
+  const [characters, setCharacters] = useState<Character[]>([
+    {
+      name: "Main WD",
+      class: "Wardancer",
+      ilvl: 1680,
+      raids: Object.fromEntries(defaultRaidList.map((r) => [r, "Skip"])),
+      raidProgress: {},
+    },
+  ]);
 
   const handleRaidChange = (index: number, raid: string, value: string) => {
     const updated = [...characters];
     updated[index].raids[raid] = value;
-    updated[index].income = calculateIncome(updated[index]);
+    if (value === "Skip") delete updated[index].raidProgress[raid];
+    else updated[index].raidProgress[raid] = false;
     setCharacters(updated);
   };
 
-  const calculateIncome = (char: Character) => {
-    return raidList.reduce((sum, raid) => sum + raidIncomeValues[raid][char.raids[raid]], 0);
+  const handleCheckboxChange = (index: number, raid: string) => {
+    const updated = [...characters];
+    updated[index].raidProgress[raid] = !updated[index].raidProgress[raid];
+    setCharacters(updated);
+  };
+
+  const resetProgress = () => {
+    const updated = characters.map((char) => {
+      const resetProgress = { ...char.raidProgress };
+      for (const raid in resetProgress) {
+        resetProgress[raid] = false;
+      }
+      return { ...char, raidProgress: resetProgress };
+    });
+    setCharacters(updated);
   };
 
   const addCharacter = () => {
-    const newChar: Character = {
-      name: `Char ${characters.length + 1}`,
-      class: "",
-      ilvl: 0,
-      raids: Object.fromEntries(raidList.map((r) => [r, "Skip"])),
-      income: 0,
-    };
-    setCharacters([...characters, newChar]);
-  };
-
-  const removeCharacter = (index: number) => {
-    const updated = [...characters];
-    updated.splice(index, 1);
-    setCharacters(updated);
+    setCharacters([
+      ...characters,
+      {
+        name: `Extra ${characters.length + 1}`,
+        class: "",
+        ilvl: 0,
+        raids: Object.fromEntries(raidList.map((r) => [r, "Skip"])),
+        raidProgress: {},
+      },
+    ]);
   };
 
   return (
-    <div className="p-4 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Lost Ark Weekly Raid Tracker</h1>
-      <button
-        onClick={addCharacter}
-        className="mb-4 px-4 py-2 bg-blue-600 text-white rounded"
-      >
-        + Add Character
-      </button>
-      <div className="space-y-4">
-        {characters.map((char, idx) => (
-          <div key={idx} className="p-4 border rounded bg-white shadow">
-            <div className="flex gap-4 flex-wrap items-center mb-2">
-              <input
-                type="text"
-                value={char.name}
-                onChange={(e) => handleChange(idx, "name", e.target.value)}
-                placeholder="Name"
-                className="border p-2 rounded w-40"
-              />
-              <input
-                type="text"
-                value={char.class}
-                onChange={(e) => handleChange(idx, "class", e.target.value)}
-                placeholder="Class"
-                className="border p-2 rounded w-40"
-              />
-              <input
-                type="number"
-                value={char.ilvl}
-                onChange={(e) => handleChange(idx, "ilvl", parseInt(e.target.value))}
-                placeholder="iLvl"
-                className="border p-2 rounded w-28"
-              />
-              <span className="ml-auto text-green-700 font-semibold">Total: {char.income.toLocaleString()}g</span>
-              <button onClick={() => removeCharacter(idx)} className="text-red-600 underline ml-4">
-                Remove
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {raidList.map((raid) => (
-                <select
-                  key={raid}
-                  value={char.raids[raid]}
-                  onChange={(e) => handleRaidChange(idx, raid, e.target.value)}
-                  className="border p-2 rounded"
-                >
-                  {raidOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {raid} - {opt}
-                    </option>
-                  ))}
-                </select>
+    <div className="p-4 space-y-4">
+      <h1 className="text-2xl font-bold">Lost Ark Raid Tracker</h1>
+      <Button onClick={addCharacter}>+ Add Character</Button>
+      <Button onClick={resetProgress} variant="destructive" className="ml-4">Reset Progress</Button>
+      {characters.map((char, idx) => (
+        <Card key={idx} className="p-4">
+          <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <Input
+              placeholder="Name"
+              value={char.name}
+              onChange={(e) => {
+                const updated = [...characters];
+                updated[idx].name = e.target.value;
+                setCharacters(updated);
+              }}
+            />
+            <Input
+              placeholder="Class"
+              value={char.class}
+              onChange={(e) => {
+                const updated = [...characters];
+                updated[idx].class = e.target.value;
+                setCharacters(updated);
+              }}
+            />
+            <Input
+              placeholder="iLvl"
+              type="number"
+              value={char.ilvl}
+              onChange={(e) => {
+                const updated = [...characters];
+                updated[idx].ilvl = parseInt(e.target.value);
+                setCharacters(updated);
+              }}
+            />
+            {raidList.map((raid) => (
+              <Select
+                key={raid}
+                value={char.raids[raid]}
+                onValueChange={(value) => handleRaidChange(idx, raid, value)}
+              >
+                {raidOptions.map((opt) => (
+                  <SelectItem key={opt} value={opt}>
+                    {raid} - {opt}
+                  </SelectItem>
+                ))}
+              </Select>
+            ))}
+          </CardContent>
+
+          {/* Raid tracking checkboxes */}
+          {Object.entries(char.raidProgress).length > 0 && (
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+              {Object.entries(char.raidProgress).map(([raid, completed]) => (
+                <label key={raid} className="flex items-center space-x-2">
+                  <Checkbox checked={completed} onCheckedChange={() => handleCheckboxChange(idx, raid)} />
+                  <span>{raid}</span>
+                </label>
               ))}
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+        </Card>
+      ))}
     </div>
   );
-};
-
-export default App;
+}
